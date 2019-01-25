@@ -27,10 +27,10 @@ public class VariableRecord extends UnpackedObject {
 
   private final StringProperty nameProp = new StringProperty("name");
   private final BinaryProperty valueProp = new BinaryProperty("value");
-  private final LongProperty scopeInstanceKeyProp = new LongProperty("scopeInstanceKey");
+  private final LongProperty scopeKey = new LongProperty("scopeKey");
 
   public VariableRecord() {
-    this.declareProperty(nameProp).declareProperty(valueProp).declareProperty(scopeInstanceKeyProp);
+    this.declareProperty(nameProp).declareProperty(valueProp).declareProperty(scopeKey);
   }
 
   public DirectBuffer getName() {
@@ -51,12 +51,12 @@ public class VariableRecord extends UnpackedObject {
     return this;
   }
 
-  public long getScopeInstanceKey() {
-    return scopeInstanceKeyProp.getValue();
+  public long getScopeKey() {
+    return scopeKey.getValue();
   }
 
-  public VariableRecord setScopeInstanceKey(long scopeInstanceKey) {
-    this.scopeInstanceKeyProp.setValue(scopeInstanceKey);
+  public VariableRecord setScopeKey(long scopeKey) {
+    this.scopeKey.setValue(scopeKey);
     return this;
   }
 }
