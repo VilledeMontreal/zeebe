@@ -524,6 +524,7 @@ public class ElementInstanceStateTest {
     workflowInstanceRecord.setVersion(1);
     workflowInstanceRecord.setWorkflowKey(2);
     workflowInstanceRecord.setBpmnElementType(BpmnElementType.START_EVENT);
+    workflowInstanceRecord.setVariableScopeKey(1000L);
 
     return workflowInstanceRecord;
   }
@@ -540,5 +541,6 @@ public class ElementInstanceStateTest {
     assertThat(record.getVersion()).isEqualTo(1);
     assertThat(record.getWorkflowKey()).isEqualTo(2);
     assertThat(record.getBpmnElementType()).isEqualTo(BpmnElementType.START_EVENT);
+    assertThat(record.getVariableScopeKey()).isEqualTo(1000L);
   }
 }

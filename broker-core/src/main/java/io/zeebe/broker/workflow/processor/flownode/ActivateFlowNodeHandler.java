@@ -17,35 +17,54 @@
  */
 package io.zeebe.broker.workflow.processor.flownode;
 
+import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.workflow.model.element.ExecutableFlowNode;
 import io.zeebe.broker.workflow.processor.BpmnStepContext;
 import io.zeebe.broker.workflow.processor.BpmnStepHandler;
-import io.zeebe.broker.workflow.processor.CatchEventBehavior.MessageCorrelationKeyException;
+import io.zeebe.broker.workflow.state.VariablesState;
 import io.zeebe.msgpack.mapping.MappingException;
 import io.zeebe.protocol.impl.record.value.incident.ErrorType;
+import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 
+/**
+ * Will apply input mappings, create a variable scope for the element, and publish the given
+ * activatedIntent to the stream. Overload {@link ActivateFlowNodeHandler#activate(BpmnStepContext)}
+ * to hook into the process, between creating the variable scope and publishing the event.
+ *
+ * @param <T> the actual ExecutableFlowNode type
+ */
 public class ActivateFlowNodeHandler<T extends ExecutableFlowNode> implements BpmnStepHandler<T> {
   private final IOMappingHelper ioMappingHelper = new IOMappingHelper();
+  private final WorkflowInstanceIntent activatedIntent;
+
+  public ActivateFlowNodeHandler() {
+    this(WorkflowInstanceIntent.ELEMENT_ACTIVATED);
+  }
+
+  public ActivateFlowNodeHandler(WorkflowInstanceIntent activatedIntent) {
+    this.activatedIntent = activatedIntent;
+  }
 
   @Override
   public void handle(BpmnStepContext<T> context) {
+    final VariablesState variablesState = context.getElementInstanceState().getVariablesState();
+    final TypedRecord<WorkflowInstanceRecord> record = context.getRecord();
+    final long currentVariableScopeKey = record.getValue().getVariableScopeKey();
+    final long nextVariableScopeKey = record.getKey();
+
     try {
-      ioMappingHelper.applyInputMappings(context);
+      ioMappingHelper.applyInputMappings(context, currentVariableScopeKey, nextVariableScopeKey);
+      variablesState.createScope(nextVariableScopeKey, currentVariableScopeKey);
+      context.getValue().setVariableScopeKey(nextVariableScopeKey);
 
-      activate(context);
-
-      context
-          .getOutput()
-          .appendFollowUpEvent(
-              context.getRecord().getKey(),
-              WorkflowInstanceIntent.ELEMENT_ACTIVATED,
-              context.getValue());
-
+      if (activate(context)) {
+        context
+            .getOutput()
+            .appendFollowUpEvent(record.getKey(), activatedIntent, context.getValue());
+      }
     } catch (MappingException e) {
       context.raiseIncident(ErrorType.IO_MAPPING_ERROR, e.getMessage());
-    } catch (MessageCorrelationKeyException e) {
-      context.raiseIncident(ErrorType.EXTRACT_VALUE_ERROR, e.getMessage());
     }
   }
 
@@ -53,6 +72,9 @@ public class ActivateFlowNodeHandler<T extends ExecutableFlowNode> implements Bp
    * To be overridden by subclasses
    *
    * @param context current processor context
+   * @return true if activated, false otherwise
    */
-  protected void activate(BpmnStepContext<T> context) {}
+  protected boolean activate(BpmnStepContext<T> context) {
+    return true;
+  }
 }

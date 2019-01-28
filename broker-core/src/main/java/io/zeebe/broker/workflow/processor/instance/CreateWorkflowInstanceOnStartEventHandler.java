@@ -61,7 +61,8 @@ public class CreateWorkflowInstanceOnStartEventHandler
           .setBpmnProcessId(bpmnId)
           .setWorkflowKey(workflowDefinition.getKey())
           .setVersion(workflowDefinition.getVersion())
-          .setWorkflowInstanceKey(workflowInstanceKey);
+          .setWorkflowInstanceKey(workflowInstanceKey)
+          .setVariableScopeKey(workflowInstanceKey);
 
       final EventOutput eventOutput = context.getOutput();
       eventOutput.appendFollowUpEvent(

@@ -47,4 +47,7 @@ public interface WorkflowInstanceRecordValue extends RecordValueWithPayload {
 
   /** @return the BPMN type of the current workflow element. */
   BpmnElementType getBpmnElementType();
+
+  /** @return the key of the variable scope. */
+  long getVariableScopeKey();
 }

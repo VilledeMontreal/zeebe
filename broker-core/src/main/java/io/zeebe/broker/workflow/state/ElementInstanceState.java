@@ -122,7 +122,6 @@ public class ElementInstanceState {
 
     elementInstanceColumnFamily.put(elementInstanceKey, instance);
     parentChildColumnFamily.put(parentChildKey, DbNil.INSTANCE);
-    variablesState.createScope(elementInstanceKey.getValue(), parentKey.getValue());
   }
 
   public ElementInstance getInstance(long key) {

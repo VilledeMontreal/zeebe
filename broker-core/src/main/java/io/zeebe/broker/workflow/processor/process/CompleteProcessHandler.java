@@ -32,5 +32,7 @@ public class CompleteProcessHandler implements BpmnStepHandler<ExecutableWorkflo
             context.getRecord().getKey(),
             WorkflowInstanceIntent.ELEMENT_COMPLETED,
             context.getValue());
+
+    final int a = 1;
   }
 }

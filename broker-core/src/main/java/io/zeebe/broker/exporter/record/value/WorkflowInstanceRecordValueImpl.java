@@ -32,6 +32,7 @@ public class WorkflowInstanceRecordValueImpl extends RecordValueWithPayloadImpl
   private final long workflowInstanceKey;
   private final long scopeInstanceKey;
   private final BpmnElementType bpmnElementType;
+  private final long variableScopeKey;
 
   public WorkflowInstanceRecordValueImpl(
       final ExporterObjectMapper objectMapper,
@@ -42,7 +43,8 @@ public class WorkflowInstanceRecordValueImpl extends RecordValueWithPayloadImpl
       final long workflowKey,
       final long workflowInstanceKey,
       final long scopeInstanceKey,
-      final BpmnElementType bpmnElementType) {
+      final BpmnElementType bpmnElementType,
+      final long variableScopeKey) {
     super(objectMapper, payload);
     this.bpmnProcessId = bpmnProcessId;
     this.elementId = elementId;
@@ -51,6 +53,7 @@ public class WorkflowInstanceRecordValueImpl extends RecordValueWithPayloadImpl
     this.workflowInstanceKey = workflowInstanceKey;
     this.scopeInstanceKey = scopeInstanceKey;
     this.bpmnElementType = bpmnElementType;
+    this.variableScopeKey = variableScopeKey;
   }
 
   @Override
@@ -86,6 +89,11 @@ public class WorkflowInstanceRecordValueImpl extends RecordValueWithPayloadImpl
   @Override
   public BpmnElementType getBpmnElementType() {
     return bpmnElementType;
+  }
+
+  @Override
+  public long getVariableScopeKey() {
+    return variableScopeKey;
   }
 
   @Override

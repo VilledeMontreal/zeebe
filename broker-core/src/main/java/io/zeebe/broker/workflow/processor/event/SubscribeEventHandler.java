@@ -27,12 +27,9 @@ public class SubscribeEventHandler implements BpmnStepHandler<ExecutableCatchEve
 
   @Override
   public void handle(final BpmnStepContext<ExecutableCatchEventSupplier> context) {
-
     try {
       context.getCatchEventBehavior().subscribeToEvents(context, context.getElement());
-
       context.getOutput().deferEvent(context.getRecord());
-
     } catch (MessageCorrelationKeyException e) {
       context.raiseIncident(ErrorType.EXTRACT_VALUE_ERROR, e.getMessage());
     }

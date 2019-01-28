@@ -31,5 +31,5 @@ public interface VariableRecordValue extends RecordValue {
   String getValue();
 
   /** @return the key of the scope instance the variable belongs to. */
-  long getScopeInstanceKey();
+  long getScopeKey();
 }

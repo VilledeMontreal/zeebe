@@ -62,6 +62,7 @@ public class CreateWorkflowInstanceStub
     response.setScopeInstanceKey(-1);
     response.setVersion(PROCESS_VERSION);
     response.setWorkflowKey(WORKFLOW_KEY);
+    response.setVariableScopeKey(WORKFLOW_INSTANCE_KEY);
 
     return new BrokerResponse<>(response, 0, WORKFLOW_INSTANCE_KEY);
   }

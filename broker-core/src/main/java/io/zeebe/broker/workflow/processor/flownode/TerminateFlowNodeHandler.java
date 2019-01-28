@@ -18,12 +18,13 @@
 package io.zeebe.broker.workflow.processor.flownode;
 
 import io.zeebe.broker.incident.processor.IncidentState;
+import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.workflow.model.element.ExecutableFlowNode;
 import io.zeebe.broker.workflow.processor.BpmnStepContext;
 import io.zeebe.broker.workflow.processor.BpmnStepHandler;
 import io.zeebe.broker.workflow.processor.EventOutput;
-import io.zeebe.broker.workflow.state.ElementInstance;
 import io.zeebe.protocol.impl.record.value.incident.IncidentRecord;
+import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 
 public class TerminateFlowNodeHandler implements BpmnStepHandler<ExecutableFlowNode> {
@@ -39,24 +40,29 @@ public class TerminateFlowNodeHandler implements BpmnStepHandler<ExecutableFlowN
   public void handle(BpmnStepContext<ExecutableFlowNode> context) {
     this.context = context;
     final EventOutput output = context.getOutput();
-    final ElementInstance elementInstance = context.getElementInstance();
-    terminate(context);
+    final TypedRecord<WorkflowInstanceRecord> record = context.getRecord();
 
-    final long elementInstanceKey = elementInstance.getKey();
-    incidentState.forExistingWorkflowIncident(elementInstanceKey, this::resolveExistingIncident);
+    if (terminate(context)) {
+      final long elementInstanceKey = record.getKey();
 
-    output.appendFollowUpEvent(
-        context.getRecord().getKey(),
-        WorkflowInstanceIntent.ELEMENT_TERMINATED,
-        context.getValue());
+      incidentState.forExistingWorkflowIncident(elementInstanceKey, this::resolveExistingIncident);
+      context.getElementInstanceState().getVariablesState().removeScope(elementInstanceKey);
+      context.getValue().setVariableScopeKey(record.getValue().getScopeInstanceKey());
+
+      output.appendFollowUpEvent(
+          record.getKey(), WorkflowInstanceIntent.ELEMENT_TERMINATED, context.getValue());
+    }
   }
 
   /**
    * To be overridden by subclasses
    *
    * @param context current processor context
+   * @return true if terminated, false otherwise
    */
-  protected void terminate(BpmnStepContext<ExecutableFlowNode> context) {}
+  protected boolean terminate(BpmnStepContext<ExecutableFlowNode> context) {
+    return true;
+  }
 
   private void resolveExistingIncident(IncidentRecord incidentRecord, long incidentKey) {
     context.getOutput().appendResolvedIncidentEvent(incidentKey, incidentRecord);

@@ -28,45 +28,43 @@ import org.agrona.DirectBuffer;
 
 public class IOMappingHelper {
 
-  public <T extends ExecutableFlowNode> void applyOutputMappings(BpmnStepContext<T> context) {
+  public <T extends ExecutableFlowNode> void applyOutputMappings(
+      BpmnStepContext<T> context, long fromScopeKey, long toScopeKey) {
     final VariablesState variablesState = context.getElementInstanceState().getVariablesState();
     final MsgPackMergeTool mergeTool = context.getMergeTool();
-
     final T element = context.getElement();
     final WorkflowInstanceRecord record = context.getValue();
-    final long elementInstanceKey = context.getRecord().getKey();
-    final long scopeInstanceKey = record.getScopeInstanceKey();
     final boolean hasOutputMappings = element.getOutputMappings().length > 0;
 
-    final DirectBuffer payload = variablesState.getPayload(elementInstanceKey);
+    final DirectBuffer payload = variablesState.getPayload(fromScopeKey);
     if (payload != null) {
 
       if (hasOutputMappings) {
-        variablesState.setVariablesLocalFromDocument(elementInstanceKey, payload);
-
+        variablesState.setVariablesLocalFromDocument(fromScopeKey, payload);
       } else {
-        variablesState.setVariablesFromDocument(scopeInstanceKey, payload);
+        variablesState.setVariablesFromDocument(toScopeKey, payload);
       }
 
-      variablesState.removePayload(elementInstanceKey);
+      variablesState.removePayload(fromScopeKey);
     }
 
     if (element.getOutputBehavior() != ZeebeOutputBehavior.none && hasOutputMappings) {
       mergeTool.reset();
 
-      final DirectBuffer variables = variablesState.getVariablesAsDocument(elementInstanceKey);
+      final DirectBuffer variables = variablesState.getVariablesAsDocument(fromScopeKey);
 
       mergeTool.mergeDocumentStrictly(variables, element.getOutputMappings());
       final DirectBuffer mergedPayload = mergeTool.writeResultToBuffer();
 
-      variablesState.setVariablesFromDocument(scopeInstanceKey, mergedPayload);
+      variablesState.setVariablesFromDocument(toScopeKey, mergedPayload);
     }
 
     // TODO (saig0) #1852: temporary way to calculate the right payload
-    record.setPayload(variablesState.getVariablesAsDocument(scopeInstanceKey));
+    record.setPayload(variablesState.getVariablesAsDocument(toScopeKey));
   }
 
-  public <T extends ExecutableFlowNode> void applyInputMappings(BpmnStepContext<T> context) {
+  public <T extends ExecutableFlowNode> void applyInputMappings(
+      BpmnStepContext<T> context, long fromScopeKey, long toScopeKey) {
 
     final MsgPackMergeTool mergeTool = context.getMergeTool();
     final T element = context.getElement();
@@ -79,7 +77,7 @@ public class IOMappingHelper {
           context
               .getElementInstanceState()
               .getVariablesState()
-              .getVariablesAsDocument(context.getFlowScopeInstance().getKey());
+              .getVariablesAsDocument(fromScopeKey);
 
       mergeTool.mergeDocumentStrictly(scopeVariables, mappings);
       final DirectBuffer mappedPayload = mergeTool.writeResultToBuffer();
@@ -87,7 +85,7 @@ public class IOMappingHelper {
       context
           .getElementInstanceState()
           .getVariablesState()
-          .setVariablesLocalFromDocument(context.getRecord().getKey(), mappedPayload);
+          .setVariablesLocalFromDocument(toScopeKey, mappedPayload);
 
       context.getValue().setPayload(mappedPayload);
     }

@@ -294,7 +294,8 @@ public class ExporterRecordMapper {
         record.getWorkflowKey(),
         record.getWorkflowInstanceKey(),
         record.getScopeInstanceKey(),
-        record.getBpmnElementType());
+        record.getBpmnElementType(),
+        record.getVariableScopeKey());
   }
 
   private WorkflowInstanceSubscriptionRecordValue ofWorkflowInstanceSubscriptionRecord(
@@ -351,10 +352,7 @@ public class ExporterRecordMapper {
     event.readValue(record);
 
     return new VariableRecordValueImpl(
-        objectMapper,
-        asString(record.getName()),
-        asJson(record.getValue()),
-        record.getScopeKey());
+        objectMapper, asString(record.getName()), asJson(record.getValue()), record.getScopeKey());
   }
 
   // UTILS

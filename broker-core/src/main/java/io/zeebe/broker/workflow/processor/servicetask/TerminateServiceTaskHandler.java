@@ -37,9 +37,7 @@ public class TerminateServiceTaskHandler extends TerminateActivityHandler {
   }
 
   @Override
-  protected void terminate(BpmnStepContext<ExecutableFlowNode> context) {
-    super.terminate(context);
-
+  protected boolean terminate(BpmnStepContext<ExecutableFlowNode> context) {
     final ElementInstance elementInstance = context.getElementInstance();
     final long jobKey = elementInstance.getJobKey();
     if (jobKey > 0) {
@@ -53,6 +51,8 @@ public class TerminateServiceTaskHandler extends TerminateActivityHandler {
       context.getCommandWriter().appendFollowUpCommand(jobKey, JobIntent.CANCEL, job);
       resolveExistingJobIncident(jobKey, context);
     }
+
+    return true;
   }
 
   public void resolveExistingJobIncident(long jobKey, BpmnStepContext<ExecutableFlowNode> context) {

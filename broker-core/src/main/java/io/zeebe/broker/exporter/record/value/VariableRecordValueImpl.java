@@ -25,14 +25,14 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
 
   private final String name;
   private final String value;
-  private final long scopeInstanceKey;
+  private final long scopeKey;
 
   public VariableRecordValueImpl(
-      final ExporterObjectMapper objectMapper, String name, String value, long scopeInstanceKey) {
+      final ExporterObjectMapper objectMapper, String name, String value, long scopeKey) {
     super(objectMapper);
     this.name = name;
     this.value = value;
-    this.scopeInstanceKey = scopeInstanceKey;
+    this.scopeKey = scopeKey;
   }
 
   @Override
@@ -46,8 +46,8 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
   }
 
   @Override
-  public long getScopeInstanceKey() {
-    return scopeInstanceKey;
+  public long getScopeKey() {
+    return scopeKey;
   }
 
   @Override
@@ -55,7 +55,7 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
     final int prime = 31;
     int result = 1;
     result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + (int) (scopeInstanceKey ^ (scopeInstanceKey >>> 32));
+    result = prime * result + (int) (scopeKey ^ (scopeKey >>> 32));
     result = prime * result + ((value == null) ? 0 : value.hashCode());
     return result;
   }
@@ -79,17 +79,14 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
     } else if (!name.equals(other.name)) {
       return false;
     }
-    if (scopeInstanceKey != other.scopeInstanceKey) {
+    if (scopeKey != other.scopeKey) {
       return false;
     }
     if (value == null) {
-      if (other.value != null) {
-        return false;
-      }
-    } else if (!value.equals(other.value)) {
-      return false;
+      return other.value == null;
+    } else {
+      return value.equals(other.value);
     }
-    return true;
   }
 
   @Override
@@ -98,8 +95,8 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
         + name
         + ", value="
         + value
-        + ", scopeInstanceKey="
-        + scopeInstanceKey
+        + ", scopeKey="
+        + scopeKey
         + "]";
   }
 }

@@ -383,8 +383,8 @@ public class VariablesState {
     this.scopeKey.wrapLong(scopeKey);
 
     removeAllVariables(scopeKey);
-
     childParentColumnFamily.delete(this.scopeKey);
+    payloadColumnFamily.delete(this.scopeKey);
   }
 
   public void removeAllVariables(long scopeKey) {

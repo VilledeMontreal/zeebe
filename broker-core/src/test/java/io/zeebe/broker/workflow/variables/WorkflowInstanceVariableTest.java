@@ -28,6 +28,7 @@ import io.zeebe.exporter.record.value.VariableRecordValue;
 import io.zeebe.model.bpmn.Bpmn;
 import io.zeebe.model.bpmn.BpmnModelInstance;
 import io.zeebe.protocol.intent.VariableIntent;
+import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 import io.zeebe.test.broker.protocol.clientapi.ClientApiRule;
 import io.zeebe.test.broker.protocol.clientapi.PartitionTestClient;
 import io.zeebe.test.util.record.RecordingExporter;
@@ -244,6 +245,7 @@ public class WorkflowInstanceVariableTest {
 
     // when
     testClient.updatePayload(workflowInstanceKey, "{'x':2, 'y':3}");
+    testClient.completeJobOfType("test");
 
     // then
     assertThat(
@@ -258,5 +260,12 @@ public class WorkflowInstanceVariableTest {
                     record.getValue().getValue()))
         .hasSize(2)
         .contains(tuple(VariableIntent.UPDATED, "x", "2"), tuple(VariableIntent.CREATED, "y", "3"));
+    assertThat(
+            RecordingExporter.workflowInstanceRecords()
+                .withElementId(PROCESS_ID)
+                .withIntent(WorkflowInstanceIntent.ELEMENT_COMPLETED)
+                .limitToWorkflowInstanceCompleted()
+                .getFirst())
+        .isNotNull();
   }
 }

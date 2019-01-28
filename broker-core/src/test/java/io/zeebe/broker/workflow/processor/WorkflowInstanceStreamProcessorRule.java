@@ -167,6 +167,14 @@ public class WorkflowInstanceStreamProcessorRule extends ExternalResource {
     return createdEvent;
   }
 
+  public TypedRecord<WorkflowInstanceRecord> cancelWorkflowInstance(
+      TypedRecord<WorkflowInstanceRecord> record) {
+    environmentRule.writeCommand(record.getKey(), WorkflowInstanceIntent.CANCEL, record.getValue());
+    return awaitElementInState(
+        BufferUtil.bufferAsString(record.getValue().getElementId()),
+        WorkflowInstanceIntent.ELEMENT_TERMINATED);
+  }
+
   public void completeFirstJob() {
     final TypedRecord<JobRecord> createCommand = awaitAndGetFirstRecordInState(JobIntent.CREATE);
 

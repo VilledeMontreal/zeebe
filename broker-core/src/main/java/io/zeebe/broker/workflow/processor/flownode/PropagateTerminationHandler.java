@@ -35,7 +35,6 @@ public class PropagateTerminationHandler implements BpmnStepHandler<ExecutableFl
     final int activeExecutionPaths = flowScopeInstance.getNumberOfActiveExecutionPaths();
     if (activeExecutionPaths > 0) {
       context.getCatchEventBehavior().triggerDeferredEvent(context);
-
     } else if (activeExecutionPaths == 0) {
       context
           .getOutput()

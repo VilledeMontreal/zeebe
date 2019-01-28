@@ -42,7 +42,6 @@ import io.zeebe.broker.workflow.processor.process.CompleteProcessHandler;
 import io.zeebe.broker.workflow.processor.sequenceflow.ParallelMergeHandler;
 import io.zeebe.broker.workflow.processor.sequenceflow.StartFlowNodeHandler;
 import io.zeebe.broker.workflow.processor.sequenceflow.TakeSequenceFlowHandler;
-import io.zeebe.broker.workflow.processor.servicetask.ActivateReceiveTaskHandler;
 import io.zeebe.broker.workflow.processor.servicetask.CreateJobHandler;
 import io.zeebe.broker.workflow.processor.servicetask.TerminateServiceTaskHandler;
 import io.zeebe.broker.workflow.processor.subprocess.TerminateContainedElementsHandler;
@@ -71,7 +70,7 @@ public class BpmnStepHandlers {
 
     // flow nodes
     stepHandlers.put(BpmnStep.ACTIVATE_FLOW_NODE, new ActivateFlowNodeHandler<>());
-    stepHandlers.put(BpmnStep.COMPLETE_FLOW_NODE, new CompleteFlowNodeHandler());
+    stepHandlers.put(BpmnStep.COMPLETE_FLOW_NODE, new CompleteFlowNodeHandler<>());
     stepHandlers.put(BpmnStep.TAKE_SEQUENCE_FLOW, new TakeSequenceFlowHandler());
     stepHandlers.put(BpmnStep.CONSUME_TOKEN, new ConsumeTokenHandler());
     stepHandlers.put(BpmnStep.PROPAGATE_TERMINATION, new PropagateTerminationHandler());
@@ -84,7 +83,6 @@ public class BpmnStepHandlers {
     // task
     stepHandlers.put(BpmnStep.CREATE_JOB, new CreateJobHandler());
     stepHandlers.put(BpmnStep.TERMINATE_JOB_TASK, new TerminateServiceTaskHandler(zeebeState));
-    stepHandlers.put(BpmnStep.ACTIVATE_RECEIVE_TASK, new ActivateReceiveTaskHandler());
 
     // exclusive gateway
     stepHandlers.put(BpmnStep.EXCLUSIVE_SPLIT, new ExclusiveSplitHandler());

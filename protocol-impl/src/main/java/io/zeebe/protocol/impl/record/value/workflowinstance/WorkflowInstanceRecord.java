@@ -37,6 +37,7 @@ public class WorkflowInstanceRecord extends UnpackedObject {
   public static final String PROP_WORKFLOW_PAYLOAD = "payload";
   public static final String PROP_WORKFLOW_BPMN_TYPE = "bpmnElementType";
   public static final String PROP_WORKFLOW_SCOPE_KEY = "scopeInstanceKey";
+  public static final String PROP_WORKFLOW_VARIABLE_SCOPE_KEY = "variableScopeKey";
 
   private final StringProperty bpmnProcessIdProp =
       new StringProperty(PROP_WORKFLOW_BPMN_PROCESS_ID, "");
@@ -54,6 +55,9 @@ public class WorkflowInstanceRecord extends UnpackedObject {
   private final EnumProperty<BpmnElementType> bpmnElementTypeProp =
       new EnumProperty(PROP_WORKFLOW_BPMN_TYPE, BpmnElementType.class, BpmnElementType.UNSPECIFIED);
 
+  private final LongProperty variableScopeKey =
+      new LongProperty(PROP_WORKFLOW_VARIABLE_SCOPE_KEY, -1L);
+
   public WorkflowInstanceRecord() {
     this.declareProperty(bpmnProcessIdProp)
         .declareProperty(versionProp)
@@ -62,7 +66,8 @@ public class WorkflowInstanceRecord extends UnpackedObject {
         .declareProperty(elementIdProp)
         .declareProperty(payloadProp)
         .declareProperty(scopeInstanceKeyProp)
-        .declareProperty(bpmnElementTypeProp);
+        .declareProperty(bpmnElementTypeProp)
+        .declareProperty(variableScopeKey);
   }
 
   public DirectBuffer getBpmnProcessId() {
@@ -162,6 +167,15 @@ public class WorkflowInstanceRecord extends UnpackedObject {
     return this;
   }
 
+  public long getVariableScopeKey() {
+    return variableScopeKey.getValue();
+  }
+
+  public WorkflowInstanceRecord setVariableScopeKey(long variableScopeKey) {
+    this.variableScopeKey.setValue(variableScopeKey);
+    return this;
+  }
+
   public void wrap(WorkflowInstanceRecord record) {
     elementIdProp.setValue(record.getElementId());
     bpmnProcessIdProp.setValue(record.getBpmnProcessId());
@@ -171,5 +185,6 @@ public class WorkflowInstanceRecord extends UnpackedObject {
     workflowKeyProp.setValue(record.getWorkflowKey());
     workflowInstanceKeyProp.setValue(record.getWorkflowInstanceKey());
     bpmnElementTypeProp.setValue(record.getBpmnElementType());
+    variableScopeKey.setValue(record.getVariableScopeKey());
   }
 }

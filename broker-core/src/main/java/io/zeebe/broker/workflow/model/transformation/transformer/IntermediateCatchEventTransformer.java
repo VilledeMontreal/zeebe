@@ -46,8 +46,8 @@ public class IntermediateCatchEventTransformer
       TransformContext context, ExecutableCatchEventElement executableElement) {
     executableElement.bindLifecycleState(
         WorkflowInstanceIntent.EVENT_ACTIVATING, BpmnStep.ACTIVATE_EVENT);
-    executableElement.bindLifecycleState(
-        WorkflowInstanceIntent.EVENT_ACTIVATED, BpmnStep.SUBSCRIBE_TO_EVENTS);
+    //    executableElement.bindLifecycleState(
+    //        WorkflowInstanceIntent.EVENT_ACTIVATED, BpmnStep.SUBSCRIBE_TO_EVENTS);
 
     executableElement.bindLifecycleState(
         WorkflowInstanceIntent.EVENT_OCCURRED, BpmnStep.TRIGGER_EVENT);

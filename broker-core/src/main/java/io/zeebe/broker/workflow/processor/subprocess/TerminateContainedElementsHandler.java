@@ -57,6 +57,10 @@ public class TerminateContainedElementsHandler
     for (IndexedRecord deferredRecord : deferredRecords) {
       context.getCatchEventBehavior().unsubscribeFromEvents(deferredRecord.getKey(), context);
       output.removeDeferredEvent(elementInstance.getKey(), deferredRecord.getKey());
+      // todo(npepinpe): temporary workaround to remove scopes created by an event; since events
+      // have no cancel phase, this is the only place where we can effectively remove their
+      // scope
+      context.getElementInstanceState().getVariablesState().removeScope(deferredRecord.getKey());
     }
 
     final List<ElementInstance> children =

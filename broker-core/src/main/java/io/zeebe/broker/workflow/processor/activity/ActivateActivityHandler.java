@@ -19,12 +19,22 @@ package io.zeebe.broker.workflow.processor.activity;
 
 import io.zeebe.broker.workflow.model.element.ExecutableActivity;
 import io.zeebe.broker.workflow.processor.BpmnStepContext;
+import io.zeebe.broker.workflow.processor.CatchEventBehavior.MessageCorrelationKeyException;
 import io.zeebe.broker.workflow.processor.flownode.ActivateFlowNodeHandler;
+import io.zeebe.protocol.impl.record.value.incident.ErrorType;
 
 public class ActivateActivityHandler extends ActivateFlowNodeHandler<ExecutableActivity> {
-
   @Override
-  protected void activate(BpmnStepContext<ExecutableActivity> context) {
-    context.getCatchEventBehavior().subscribeToEvents(context, context.getElement());
+  protected boolean activate(BpmnStepContext<ExecutableActivity> context) {
+    boolean activated = false;
+
+    try {
+      context.getCatchEventBehavior().subscribeToEvents(context, context.getElement());
+      activated = true;
+    } catch (MessageCorrelationKeyException e) {
+      context.raiseIncident(ErrorType.EXTRACT_VALUE_ERROR, e.getMessage());
+    }
+
+    return activated;
   }
 }

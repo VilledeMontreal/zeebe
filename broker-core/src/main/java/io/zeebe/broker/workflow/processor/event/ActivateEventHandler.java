@@ -19,28 +19,28 @@ package io.zeebe.broker.workflow.processor.event;
 
 import io.zeebe.broker.workflow.model.element.ExecutableCatchEventElement;
 import io.zeebe.broker.workflow.processor.BpmnStepContext;
-import io.zeebe.broker.workflow.processor.BpmnStepHandler;
-import io.zeebe.broker.workflow.processor.flownode.IOMappingHelper;
-import io.zeebe.msgpack.mapping.MappingException;
+import io.zeebe.broker.workflow.processor.CatchEventBehavior.MessageCorrelationKeyException;
+import io.zeebe.broker.workflow.processor.flownode.ActivateFlowNodeHandler;
 import io.zeebe.protocol.impl.record.value.incident.ErrorType;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 
-public class ActivateEventHandler implements BpmnStepHandler<ExecutableCatchEventElement> {
-  private final IOMappingHelper ioMappingHelper = new IOMappingHelper();
+public class ActivateEventHandler extends ActivateFlowNodeHandler<ExecutableCatchEventElement> {
+  public ActivateEventHandler() {
+    super(WorkflowInstanceIntent.EVENT_ACTIVATED);
+  }
 
   @Override
-  public void handle(BpmnStepContext<ExecutableCatchEventElement> context) {
-    try {
-      ioMappingHelper.applyInputMappings(context);
+  protected boolean activate(BpmnStepContext<ExecutableCatchEventElement> context) {
+    boolean activated = false;
 
-      context
-          .getOutput()
-          .appendFollowUpEvent(
-              context.getRecord().getKey(),
-              WorkflowInstanceIntent.EVENT_ACTIVATED,
-              context.getValue());
-    } catch (MappingException e) {
-      context.raiseIncident(ErrorType.IO_MAPPING_ERROR, e.getMessage());
+    try {
+      context.getCatchEventBehavior().subscribeToEvents(context, context.getElement());
+      context.getOutput().deferEvent(context.getRecord());
+      activated = true;
+    } catch (MessageCorrelationKeyException e) {
+      context.raiseIncident(ErrorType.EXTRACT_VALUE_ERROR, e.getMessage());
     }
+
+    return activated;
   }
 }

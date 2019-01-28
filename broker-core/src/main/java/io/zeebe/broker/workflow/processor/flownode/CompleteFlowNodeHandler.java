@@ -17,29 +17,49 @@
  */
 package io.zeebe.broker.workflow.processor.flownode;
 
+import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.workflow.model.element.ExecutableFlowNode;
 import io.zeebe.broker.workflow.processor.BpmnStepContext;
 import io.zeebe.broker.workflow.processor.BpmnStepHandler;
 import io.zeebe.msgpack.mapping.MappingException;
 import io.zeebe.protocol.impl.record.value.incident.ErrorType;
+import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 
-public class CompleteFlowNodeHandler implements BpmnStepHandler<ExecutableFlowNode> {
+/**
+ * Applies output mappings, removes the element's variable scope, sets the record's variable scope
+ * key to the flow scope key, and publishes the ELEMENT_COMPLETED event.
+ */
+public class CompleteFlowNodeHandler<T extends ExecutableFlowNode> implements BpmnStepHandler<T> {
   private final IOMappingHelper ioMappingHelper = new IOMappingHelper();
+  private final WorkflowInstanceIntent completedIntent;
+
+  public CompleteFlowNodeHandler() {
+    this(WorkflowInstanceIntent.ELEMENT_COMPLETED);
+  }
+
+  public CompleteFlowNodeHandler(WorkflowInstanceIntent completedIntent) {
+    this.completedIntent = completedIntent;
+  }
 
   @Override
-  public void handle(BpmnStepContext<ExecutableFlowNode> context) {
+  public void handle(BpmnStepContext<T> context) {
+    final TypedRecord<WorkflowInstanceRecord> record = context.getRecord();
+    final long variableScopeKey = record.getValue().getVariableScopeKey();
+    final long scopeInstanceKey = record.getValue().getScopeInstanceKey();
+    final long elementInstanceKey = record.getKey();
+
     try {
-      ioMappingHelper.applyOutputMappings(context);
+      ioMappingHelper.applyOutputMappings(context, variableScopeKey, scopeInstanceKey);
 
-      complete(context);
+      if (complete(context)) {
+        context.getElementInstanceState().getVariablesState().removeScope(elementInstanceKey);
+        context.getValue().setVariableScopeKey(scopeInstanceKey);
+        context
+            .getOutput()
+            .appendFollowUpEvent(elementInstanceKey, completedIntent, context.getValue());
+      }
 
-      context
-          .getOutput()
-          .appendFollowUpEvent(
-              context.getRecord().getKey(),
-              WorkflowInstanceIntent.ELEMENT_COMPLETED,
-              context.getValue());
     } catch (MappingException e) {
       context.raiseIncident(ErrorType.IO_MAPPING_ERROR, e.getMessage());
     }
@@ -49,6 +69,9 @@ public class CompleteFlowNodeHandler implements BpmnStepHandler<ExecutableFlowNo
    * To be overridden by subclasses
    *
    * @param context current processor context
+   * @return true if completed, false otherwise
    */
-  public void complete(BpmnStepContext<ExecutableFlowNode> context) {}
+  public boolean complete(BpmnStepContext<T> context) {
+    return true;
+  }
 }
