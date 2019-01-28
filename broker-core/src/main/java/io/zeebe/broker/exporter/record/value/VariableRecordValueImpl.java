@@ -25,14 +25,14 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
 
   private final String name;
   private final String value;
-  private final long scopeKey;
+  private final long scopeInstanceKey;
 
   public VariableRecordValueImpl(
-      final ExporterObjectMapper objectMapper, String name, String value, long scopeKey) {
+      final ExporterObjectMapper objectMapper, String name, String value, long scopeInstanceKey) {
     super(objectMapper);
     this.name = name;
     this.value = value;
-    this.scopeKey = scopeKey;
+    this.scopeInstanceKey = scopeInstanceKey;
   }
 
   @Override
@@ -46,8 +46,8 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
   }
 
   @Override
-  public long getScopeKey() {
-    return scopeKey;
+  public long getScopeInstanceKey() {
+    return scopeInstanceKey;
   }
 
   @Override
@@ -55,7 +55,7 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
     final int prime = 31;
     int result = 1;
     result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + (int) (scopeKey ^ (scopeKey >>> 32));
+    result = prime * result + (int) (scopeInstanceKey ^ (scopeInstanceKey >>> 32));
     result = prime * result + ((value == null) ? 0 : value.hashCode());
     return result;
   }
@@ -79,7 +79,7 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
     } else if (!name.equals(other.name)) {
       return false;
     }
-    if (scopeKey != other.scopeKey) {
+    if (scopeInstanceKey != other.scopeInstanceKey) {
       return false;
     }
     if (value == null) {
@@ -95,8 +95,8 @@ public class VariableRecordValueImpl extends RecordValueImpl implements Variable
         + name
         + ", value="
         + value
-        + ", scopeKey="
-        + scopeKey
+        + ", scopeInstanceKey="
+        + scopeInstanceKey
         + "]";
   }
 }

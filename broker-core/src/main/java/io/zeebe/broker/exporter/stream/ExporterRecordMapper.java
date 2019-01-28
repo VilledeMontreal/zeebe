@@ -352,7 +352,10 @@ public class ExporterRecordMapper {
     event.readValue(record);
 
     return new VariableRecordValueImpl(
-        objectMapper, asString(record.getName()), asJson(record.getValue()), record.getScopeKey());
+        objectMapper,
+        asString(record.getName()),
+        asJson(record.getValue()),
+        record.getScopeInstanceKey());
   }
 
   // UTILS

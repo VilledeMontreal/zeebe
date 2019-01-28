@@ -119,7 +119,7 @@ public class ActivityInputMappingTest {
 
     assertThat(
             RecordingExporter.variableRecords()
-                .withScopeKey(scopeInstanceKey)
+                .withScopeInstanceKey(scopeInstanceKey)
                 .limit(expectedActivityVariables.size()))
         .extracting(Record::getValue)
         .extracting(v -> tuple(v.getName(), v.getValue()))

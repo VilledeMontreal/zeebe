@@ -700,7 +700,7 @@ public class ExporterStreamProcessorTest {
         new VariableRecord()
             .setName(wrapString(name))
             .setValue(MsgPackUtil.asMsgPack(value))
-            .setScopeKey(scopeKey);
+            .setScopeInstanceKey(scopeKey);
 
     final VariableRecordValue recordValue =
         new VariableRecordValueImpl(OBJECT_MAPPER, name, value, scopeKey);
