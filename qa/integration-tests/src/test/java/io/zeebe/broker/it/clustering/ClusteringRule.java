@@ -24,6 +24,7 @@ import static io.zeebe.broker.test.EmbeddedBrokerRule.assignSocketAddresses;
 import static io.zeebe.test.util.TestUtil.doRepeatedly;
 import static io.zeebe.test.util.TestUtil.waitUntil;
 
+import com.esotericsoftware.minlog.Log;
 import io.zeebe.broker.Broker;
 import io.zeebe.broker.system.configuration.BrokerCfg;
 import io.zeebe.client.ZeebeClient;
@@ -167,7 +168,9 @@ public class ClusteringRule extends ExternalResource {
             .build();
 
     waitForPartitionReplicationFactor();
+    Log.info("Full replication factor");
     waitUntilBrokersInTopology();
+    Log.info("All brokers in topology");
   }
 
   private Broker getBroker(final int nodeId) {

@@ -156,11 +156,6 @@ public class StubbedGateway extends Gateway {
     }
 
     @Override
-    public void withTopology(Consumer<BrokerClusterState> topologyConsumer) {
-      topologyConsumer.accept(clusterState);
-    }
-
-    @Override
     public void provideTopology(TopologyResponseDto topology) {
       clusterState = new BrokerClusterStateImpl(topology, (id, addr) -> {});
     }

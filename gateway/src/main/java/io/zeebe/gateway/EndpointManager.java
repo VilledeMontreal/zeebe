@@ -25,6 +25,7 @@ import io.zeebe.gateway.cmd.ClientOutOfMemoryException;
 import io.zeebe.gateway.cmd.GrpcStatusException;
 import io.zeebe.gateway.cmd.GrpcStatusExceptionImpl;
 import io.zeebe.gateway.impl.broker.BrokerClient;
+import io.zeebe.gateway.impl.broker.cluster.BrokerClusterState;
 import io.zeebe.gateway.impl.broker.cluster.BrokerTopologyManager;
 import io.zeebe.gateway.impl.broker.request.BrokerRequest;
 import io.zeebe.gateway.impl.broker.response.BrokerError;
@@ -191,10 +192,8 @@ public class EndpointManager extends GatewayGrpc.GatewayImplBase {
   @Override
   public void activateJobs(
       ActivateJobsRequest request, StreamObserver<ActivateJobsResponse> responseObserver) {
-    topologyManager.withTopology(
-        topology ->
-            activateJobsHandler.activateJobs(
-                topology.getPartitionsCount(), request, responseObserver));
+    final BrokerClusterState topology = topologyManager.getTopology();
+    activateJobsHandler.activateJobs(topology.getPartitionsCount(), request, responseObserver);
   }
 
   @Override

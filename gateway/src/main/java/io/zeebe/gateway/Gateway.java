@@ -70,6 +70,7 @@ public class Gateway {
 
     brokerClient = buildBrokerClient();
 
+
     server =
         serverBuilderFactory
             .apply(gatewayCfg)

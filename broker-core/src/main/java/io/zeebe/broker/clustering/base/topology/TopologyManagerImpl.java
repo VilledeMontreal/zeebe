@@ -162,6 +162,10 @@ public class TopologyManagerImpl extends Actor
   }
 
   private void onMemberAdded(ClusterMembershipEvent clusterMembershipEvent) {
+    if (clusterMembershipEvent.subject().id().id().equals("gateway")) {
+      return;
+    }
+
     final Member eventSource = clusterMembershipEvent.subject();
     final Member localNode = atomix.getMembershipService().getLocalMember();
 

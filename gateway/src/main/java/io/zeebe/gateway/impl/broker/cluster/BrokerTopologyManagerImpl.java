@@ -15,25 +15,33 @@
  */
 package io.zeebe.gateway.impl.broker.cluster;
 
+import static io.zeebe.gateway.impl.broker.BrokerClientImpl.LOG;
+
+import com.esotericsoftware.minlog.Log;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.atomix.cluster.ClusterMembershipEvent;
+import io.atomix.cluster.ClusterMembershipEventListener;
+import io.atomix.cluster.Member;
 import io.zeebe.gateway.impl.broker.request.BrokerTopologyRequest;
-import io.zeebe.gateway.impl.broker.response.BrokerResponse;
 import io.zeebe.protocol.impl.data.cluster.TopologyResponseDto;
+import io.zeebe.raft.state.RaftState;
 import io.zeebe.transport.ClientOutput;
-import io.zeebe.transport.ClientResponse;
-import io.zeebe.transport.ClientTransport;
 import io.zeebe.transport.SocketAddress;
 import io.zeebe.util.sched.Actor;
-import io.zeebe.util.sched.clock.ActorClock;
 import io.zeebe.util.sched.future.ActorFuture;
 import io.zeebe.util.sched.future.CompletableActorFuture;
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
-public class BrokerTopologyManagerImpl extends Actor implements BrokerTopologyManager {
+public class BrokerTopologyManagerImpl extends Actor
+    implements BrokerTopologyManager, ClusterMembershipEventListener {
   /** Interval in which the topology is refreshed even if the client is idle */
   public static final Duration MAX_REFRESH_INTERVAL_MILLIS = Duration.ofSeconds(10);
 
@@ -47,6 +55,9 @@ public class BrokerTopologyManagerImpl extends Actor implements BrokerTopologyMa
   protected final BiConsumer<Integer, SocketAddress> registerEndpoint;
 
   protected final AtomicReference<BrokerClusterStateImpl> topology;
+  // TODO: keep this implementation and remove the above
+  protected final BrokerClusterStateImplAtomix newTopology;
+
   protected final List<CompletableActorFuture<BrokerClusterState>> nextTopologyFutures =
       new ArrayList<>();
 
@@ -54,19 +65,40 @@ public class BrokerTopologyManagerImpl extends Actor implements BrokerTopologyMa
 
   protected int refreshAttempt = 0;
   protected long lastRefreshTime = -1;
+  private ObjectMapper objectMapper;
 
   public BrokerTopologyManagerImpl(
       final ClientOutput output, final BiConsumer<Integer, SocketAddress> registerEndpoint) {
     this.output = output;
     this.registerEndpoint = registerEndpoint;
 
+    this.objectMapper = new ObjectMapper();
     this.topology = new AtomicReference<>(null);
+    this.newTopology = new BrokerClusterStateImplAtomix();
+  }
+
+  public void setBrokers(Set<Member> brokers) {
+    actor.call(
+        () -> {
+          for (Member broker : brokers) {
+            if (broker.id().id().equals("gateway")) {
+              continue;
+            }
+
+            try {
+              int id = Integer.parseInt(broker.id().id());
+              updatePartitions(broker.properties(), id);
+
+              LOG.info("Broker {} has topology {}", id, broker.properties());
+            } catch (NumberFormatException e) {
+              LOG.info("Invalid broker id '{}'", broker.id().id());
+            }
+          }
+        });
   }
 
   @Override
-  protected void onActorStarted() {
-    actor.run(this::refreshTopology);
-  }
+  protected void onActorStarted() {}
 
   public ActorFuture<Void> close() {
     return actor.close();
@@ -75,127 +107,97 @@ public class BrokerTopologyManagerImpl extends Actor implements BrokerTopologyMa
   /** @return the current known cluster state or null if the topology was not fetched yet */
   @Override
   public BrokerClusterState getTopology() {
-    return topology.get();
+    return newTopology;
   }
 
   @Override
   public ActorFuture<BrokerClusterState> requestTopology() {
     final CompletableActorFuture<BrokerClusterState> future = new CompletableActorFuture<>();
 
-    actor.run(
-        () -> {
-          final boolean isFirstStagedRequest = nextTopologyFutures.isEmpty();
-          nextTopologyFutures.add(future);
-
-          if (isFirstStagedRequest) {
-            scheduleNextRefresh();
-          }
-        });
+    //    actor.run(
+    //        () -> {
+    //          final boolean isFirstStagedRequest = nextTopologyFutures.isEmpty();
+    //          nextTopologyFutures.add(future);
+    //
+    //          if (isFirstStagedRequest) {
+    //            scheduleNextRefresh();
+    //          }
+    //        });
+    future.complete(newTopology);
 
     return future;
   }
 
   @Override
-  public void withTopology(Consumer<BrokerClusterState> topologyConsumer) {
-    final BrokerClusterStateImpl brokerClusterState = topology.get();
-    if (brokerClusterState != null) {
-      topologyConsumer.accept(brokerClusterState);
-    } else {
-      actor.run(
-          () ->
-              actor.runOnCompletion(
-                  requestTopology(),
-                  (topology, error) -> {
-                    if (error == null) {
-                      topologyConsumer.accept(topology);
-                    } else {
-                      withTopology(topologyConsumer);
-                    }
-                  }));
-    }
-  }
-
-  private void scheduleNextRefresh() {
-    final long now = ActorClock.currentTimeMillis();
-    final long timeSinceLastRefresh = now - lastRefreshTime;
-
-    if (timeSinceLastRefresh >= MIN_REFRESH_INTERVAL_MILLIS.toMillis()) {
-      refreshTopology();
-    } else {
-      final long timeoutToNextRefresh =
-          MIN_REFRESH_INTERVAL_MILLIS.toMillis() - timeSinceLastRefresh;
-      actor.runDelayed(Duration.ofMillis(timeoutToNextRefresh), this::refreshTopology);
-    }
+  public void provideTopology(final TopologyResponseDto topology) {
+    //    actor.call(
+    //        () -> {
+    //          // TODO: not sure we should complete the refresh futures in this case,
+    //          //   as the response could be older than the time when the future was submitted
+    //          onNewTopology(topology);
+    //        });
   }
 
   @Override
-  public void provideTopology(final TopologyResponseDto topology) {
+  public void event(ClusterMembershipEvent event) {
     actor.call(
         () -> {
-          // TODO: not sure we should complete the refresh futures in this case,
-          //   as the response could be older than the time when the future was submitted
-          onNewTopology(topology);
+          LOG.info("Gateway received event: {}", event);
+
+          final Member node = event.subject();
+          final Properties properties = node.properties();
+          int brokerId;
+
+          try {
+            brokerId = Integer.parseInt(node.id().id());
+          } catch (NumberFormatException e) {
+            return;
+          }
+
+          switch (event.type()) {
+            case METADATA_CHANGED:
+            case MEMBER_ADDED:
+              updatePartitions(properties, brokerId);
+
+              break;
+
+            case MEMBER_REMOVED:
+              newTopology.removeBroker(brokerId);
+              break;
+          }
         });
   }
 
-  private void refreshTopology() {
-    final BrokerClusterStateImpl brokerClusterState = topology.get();
-    final int endpoint;
-    if (brokerClusterState != null) {
-      endpoint = brokerClusterState.getRandomBroker();
-    } else {
-      // never fetched topology before so use initial contact point node
-      endpoint = ClientTransport.UNKNOWN_NODE_ID;
-    }
-    final ActorFuture<ClientResponse> responseFuture =
-        output.sendRequest(endpoint, topologyRequest, Duration.ofSeconds(1));
+  private void updatePartitions(Properties properties, int brokerId) {
+    for (String prop : properties.stringPropertyNames()) {
+      if (prop.startsWith("partition-")
+          && RaftState.valueOf(properties.getProperty(prop)) == RaftState.LEADER) {
+        final int partitionId = Integer.parseInt(prop.split("-")[1]);
 
-    refreshAttempt++;
-    lastRefreshTime = ActorClock.currentTimeMillis();
-    actor.runOnCompletion(responseFuture, this::handleResponse);
-    actor.runDelayed(MAX_REFRESH_INTERVAL_MILLIS, scheduleIdleRefresh());
-  }
+        newTopology.setPartitionLeader(partitionId, brokerId);
+        newTopology.addPartitionIfAbsent(partitionId);
 
-  /** Only schedules topology refresh if there was no refresh attempt in the last ten seconds */
-  private Runnable scheduleIdleRefresh() {
-    final int currentAttempt = refreshAttempt;
-
-    return () -> {
-      // if no topology refresh attempt was made in the meantime
-      if (currentAttempt == refreshAttempt) {
-        actor.run(this::refreshTopology);
+        //        if (newTopology.addBrokerIfAbsent(brokerId)) {
+        newTopology.addBrokerIfAbsent(brokerId);
+        final String clientApiAddress = properties.getProperty("clientAddress");
+        addLeaderEndpoint(brokerId, clientApiAddress);
+        //        }
+        LOG.info("Added broker {} as leader of partition {}", brokerId, partitionId);
       }
-    };
-  }
-
-  private void handleResponse(final ClientResponse clientResponse, final Throwable t) {
-    if (t == null) {
-      final BrokerResponse<TopologyResponseDto> response =
-          topologyRequest.getResponse(clientResponse);
-      if (response.isResponse()) {
-        onNewTopology(response.getResponse());
-      } else {
-        failRefreshFutures(new RuntimeException("Failed to refresh topology: " + response));
-      }
-    } else {
-      failRefreshFutures(t);
     }
   }
 
-  private void onNewTopology(final TopologyResponseDto topology) {
-    final BrokerClusterStateImpl newClusterState =
-        new BrokerClusterStateImpl(topology, registerEndpoint);
-    this.topology.set(newClusterState);
-    completeRefreshFutures(newClusterState);
-  }
+  private void addLeaderEndpoint(int brokerId, String address) {
+    final InetSocketAddress socketAddress;
+    try {
+      socketAddress = objectMapper.readValue(address, InetSocketAddress.class);
+      registerEndpoint.accept(
+          brokerId,
+          SocketAddress.from(
+              socketAddress.getAddress().toString() + ":" + socketAddress.getPort()));
 
-  private void completeRefreshFutures(final BrokerClusterStateImpl newClusterState) {
-    nextTopologyFutures.forEach(f -> f.complete(newClusterState));
-    nextTopologyFutures.clear();
-  }
-
-  private void failRefreshFutures(final Throwable t) {
-    nextTopologyFutures.forEach(f -> f.completeExceptionally("Could not refresh topology", t));
-    nextTopologyFutures.clear();
+    } catch (IOException e) {
+      Log.error("Invalid client address for broker {}:  ", Integer.toString(brokerId), e);
+    }
   }
 }

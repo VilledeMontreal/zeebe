@@ -15,6 +15,11 @@
  */
 package io.zeebe.gateway.impl.broker;
 
+import com.esotericsoftware.minlog.Log;
+import io.atomix.cluster.discovery.BootstrapDiscoveryProvider;
+import io.atomix.core.Atomix;
+import io.atomix.core.profile.Profile;
+import io.atomix.utils.net.Address;
 import io.zeebe.dispatcher.Dispatcher;
 import io.zeebe.dispatcher.Dispatchers;
 import io.zeebe.gateway.Loggers;
@@ -34,6 +39,7 @@ import io.zeebe.util.ByteValue;
 import io.zeebe.util.sched.ActorScheduler;
 import io.zeebe.util.sched.clock.ActorClock;
 import io.zeebe.util.sched.future.ActorFuture;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -42,6 +48,7 @@ import org.slf4j.Logger;
 
 public class BrokerClientImpl implements BrokerClient {
   public static final Logger LOG = Loggers.GATEWAY_LOGGER;
+  public static final int CLIENT_ADDR_OFFSET = 16;
 
   protected final ActorScheduler actorScheduler;
   private final Dispatcher dataFrameReceiveBuffer;
@@ -50,6 +57,7 @@ public class BrokerClientImpl implements BrokerClient {
   private final BrokerRequestManager requestManager;
   protected final BrokerTopologyManagerImpl topologyManager;
 
+  private Atomix atomix;
   protected boolean isClosed;
 
   public BrokerClientImpl(final GatewayCfg configuration) {
@@ -97,8 +105,31 @@ public class BrokerClientImpl implements BrokerClient {
     transport = transportBuilder.build();
     internalTransport = internalTransportBuilder.build();
 
+    String[] parts = configuration.getCluster().getContactPoint().split(":");
+    Integer port = Integer.parseInt(parts[1]);
+    atomix =
+        Atomix.builder()
+            .withMemberId("gateway")
+            .withClusterId("zeebe-cluster")
+            .withProfiles(Profile.dataGrid(1))
+            .withMembershipProvider(
+                BootstrapDiscoveryProvider.builder()
+                    .withNodes(Address.from(parts[0], (port + CLIENT_ADDR_OFFSET)))
+                    .build())
+            .build();
+    Log.info("Gateway port {}", configuration.getNetwork().toString());
+
     topologyManager =
         new BrokerTopologyManagerImpl(internalTransport.getOutput(), this::registerEndpoint);
+    atomix.getMembershipService().addListener(topologyManager);
+
+    final CompletableFuture<Void> joinedFuture = atomix.start();
+    joinedFuture.whenComplete(
+        (r, t) -> {
+          Log.info("Atomix has finished starting");
+          topologyManager.setBrokers(atomix.getMembershipService().getMembers());
+        });
+
     actorScheduler.submitActor(topologyManager);
 
     requestManager =
