@@ -261,6 +261,36 @@ public class ArrayValueTest {
   }
 
   @Test
+  public void shouldUpdateWithBiggerPojoValue() {
+    // given
+    final DirectBuffer resourceName = BufferUtil.wrapString("findme");
+    final DirectBuffer initialResource = BufferUtil.wrapString("small");
+    final DirectBuffer updatedResource = BufferUtil.wrapString("biggerbiggerbigger");
+
+    final ArrayValue<BinaryStringPojo> array = new ArrayValue<>(new BinaryStringPojo());
+    array.add().setResourceName(resourceName).setResource(initialResource);
+
+    // when
+    Iterator<BinaryStringPojo> iterator = array.iterator();
+    BinaryStringPojo element = iterator.next();
+    element.setResource(updatedResource);
+
+    // then
+    encodeAndDecode(array);
+
+    iterator = array.iterator();
+    assertThat(iterator.hasNext()).isTrue();
+    element = iterator.next();
+    assertThat(element.getResource()).isEqualTo(updatedResource);
+    assertThat(element.getResourceName())
+        .withFailMessage(
+            "Expected resource name '%s' but got '%s'",
+            BufferUtil.bufferAsString(resourceName),
+            BufferUtil.bufferAsString(element.getResourceName()))
+        .isEqualTo(resourceName);
+  }
+
+  @Test
   public void shouldIncreaseInternalBufferWhenAddingToEnd() {
     // given
     final int valueCount = 10_000;
