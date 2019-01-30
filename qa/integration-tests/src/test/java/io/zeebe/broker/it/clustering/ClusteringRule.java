@@ -15,6 +15,7 @@
  */
 package io.zeebe.broker.it.clustering;
 
+import static io.zeebe.broker.Broker.LOG;
 import static io.zeebe.broker.test.EmbeddedBrokerConfigurator.DEBUG_EXPORTER;
 import static io.zeebe.broker.test.EmbeddedBrokerConfigurator.DISABLE_EMBEDDED_GATEWAY;
 import static io.zeebe.broker.test.EmbeddedBrokerConfigurator.TEST_RECORDER;
@@ -72,7 +73,7 @@ import org.junit.runners.model.Statement;
 
 public class ClusteringRule extends ExternalResource {
 
-  private static final boolean ENABLE_DEBUG_EXPORTER = false;
+  private static final boolean ENABLE_DEBUG_EXPORTER = true;
 
   protected final RecordingExporterTestWatcher recordingExporterTestWatcher =
       new RecordingExporterTestWatcher();
@@ -547,6 +548,8 @@ public class ClusteringRule extends ExternalResource {
         nodeId, brokerCfg.getNetwork().getClient().toSocketAddress());
 
     request.serializeValue();
+
+    LOG.debug("Sending request to {} {}", nodeId, request);
 
     final ClientResponse response =
         internalTransport

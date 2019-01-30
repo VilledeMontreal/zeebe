@@ -31,7 +31,6 @@ import io.zeebe.util.sched.Actor;
 import io.zeebe.util.sched.future.ActorFuture;
 import io.zeebe.util.sched.future.CompletableActorFuture;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -188,14 +187,9 @@ public class BrokerTopologyManagerImpl extends Actor
   }
 
   private void addLeaderEndpoint(int brokerId, String address) {
-    final InetSocketAddress socketAddress;
     try {
-      socketAddress = objectMapper.readValue(address, InetSocketAddress.class);
-      registerEndpoint.accept(
-          brokerId,
-          SocketAddress.from(
-              socketAddress.getAddress().toString() + ":" + socketAddress.getPort()));
-
+      final String socketAddress = objectMapper.readValue(address, String.class);
+      registerEndpoint.accept(brokerId, SocketAddress.from(socketAddress));
     } catch (IOException e) {
       Log.error("Invalid client address for broker {}:  ", Integer.toString(brokerId), e);
     }
