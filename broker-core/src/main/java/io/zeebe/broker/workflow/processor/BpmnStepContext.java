@@ -122,6 +122,26 @@ public class BpmnStepContext<T extends ExecutableFlowElement> {
     return sideEffect;
   }
 
+  /**
+   * Creates a new scope (if not present) with its own key, and the parent key being its flow
+   * scope's variable scope key. Sets its own key as its variable scope key.
+   */
+  public void createLocalVariableScope() {
+    elementInstanceState
+        .getVariablesState()
+        .createScope(record.getKey(), flowScopeInstance.getValue().getVariableScopeKey());
+    record.getValue().setVariableScopeKey(record.getKey());
+  }
+
+  /**
+   * Removes the variable scope with its own key, and set its variableScopeKey to its flow scope's
+   * variable scope key.
+   */
+  public void removeLocalVariableScope() {
+    elementInstanceState.getVariablesState().removeScope(record.getKey());
+    record.getValue().setVariableScopeKey(flowScopeInstance.getValue().getVariableScopeKey());
+  }
+
   public void raiseIncident(ErrorType errorType, String errorMessage) {
     incidentCommand.reset();
 

@@ -17,13 +17,11 @@
  */
 package io.zeebe.broker.workflow.processor.event;
 
-import io.zeebe.broker.logstreams.processor.TypedRecord;
 import io.zeebe.broker.workflow.model.element.ExecutableBoundaryEvent;
 import io.zeebe.broker.workflow.processor.BpmnStepContext;
 import io.zeebe.broker.workflow.processor.BpmnStepHandler;
 import io.zeebe.broker.workflow.state.ElementInstance;
 import io.zeebe.broker.workflow.state.VariablesState;
-import io.zeebe.protocol.impl.record.value.workflowinstance.WorkflowInstanceRecord;
 import io.zeebe.protocol.intent.WorkflowInstanceIntent;
 import org.agrona.DirectBuffer;
 
@@ -32,12 +30,6 @@ public class TriggerBoundaryEventHandler implements BpmnStepHandler<ExecutableBo
   @Override
   public void handle(BpmnStepContext<ExecutableBoundaryEvent> context) {
     final ExecutableBoundaryEvent element = context.getElement();
-    final TypedRecord<WorkflowInstanceRecord> record = context.getRecord();
-
-    context
-        .getElementInstanceState()
-        .getVariablesState()
-        .createScope(record.getKey(), record.getValue().getScopeInstanceKey());
 
     if (element.cancelActivity()) {
       triggerInterruptingBoundaryEvent(context);

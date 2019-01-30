@@ -50,11 +50,11 @@ public class CompleteFlowNodeHandler<T extends ExecutableFlowNode> implements Bp
     final long elementInstanceKey = record.getKey();
 
     try {
+      context.createLocalVariableScope();
       ioMappingHelper.applyOutputMappings(context, variableScopeKey, scopeInstanceKey);
 
       if (complete(context)) {
-        context.getElementInstanceState().getVariablesState().removeScope(elementInstanceKey);
-        context.getValue().setVariableScopeKey(scopeInstanceKey);
+        context.removeLocalVariableScope();
         context
             .getOutput()
             .appendFollowUpEvent(elementInstanceKey, completedIntent, context.getValue());
