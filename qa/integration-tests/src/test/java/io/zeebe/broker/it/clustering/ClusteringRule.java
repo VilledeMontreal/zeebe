@@ -168,6 +168,8 @@ public class ClusteringRule extends ExternalResource {
             .scheduler(((BrokerClientImpl) gateway.getBrokerClient()).getScheduler())
             .build();
 
+    // TODO: this needs to wait for the broker to do something apparently
+    // don't know why the broker doesn't respond
     waitForPartitionReplicationFactor();
     Log.info("Full replication factor");
     waitUntilBrokersInTopology();
